@@ -7,43 +7,72 @@
 // Omit context/destination to run standalone (own AudioContext -> speakers).
 // ============================================================
 export class MonarcEngine {
+  static driveCurve(amount) {
+    // tanh saturation, normalized so peak output stays at 1 for any drive
+    const n = 1024;
+    const curve = new Float32Array(n);
+    const k = 1 + amount * 49; // 1..50
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      curve[i] = Math.tanh(k * x) / Math.tanh(k);
+    }
+    return curve;
+  }
+
   constructor({ context, destination } = {}) {
     this.context = context || new (window.AudioContext || window.webkitAudioContext)();
     const ctx = this.context;
 
-    // fixed chain: [osc1..3] -> mixBus -> filter -> vca -> master -> out
+    // fixed chain: [osc1..3 + sub] -> mixBus -> filter -> vca -> shaper -> master -> out
     this.mixBus = ctx.createGain();
     this.filter = ctx.createBiquadFilter();
     this.filter.type = "lowpass";
     this.vca = ctx.createGain();
     this.vca.gain.value = 0;
+    this.shaper = ctx.createWaveShaper();
     this.master = ctx.createGain();
-    this.master.gain.value = 0.8;
+    this.master.gain.value = 0.7;
+    this.drive = 0.35;
+    this.shaper.curve = MonarcEngine.driveCurve(this.drive);
+    this.shaper.oversample = "4x";
 
     this.mixBus.connect(this.filter);
     this.filter.connect(this.vca);
-    this.vca.connect(this.master);
+    this.vca.connect(this.shaper);
+    this.shaper.connect(this.master);
     this.master.connect(destination || ctx.destination);
 
     this.oscs = [0, 1, 2].map((i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      gain.gain.value = i === 0 ? 1 : 0;
-      osc.type = "sawtooth";
+      gain.gain.value = i === 0 ? 1 : i === 1 ? 0.55 : 0.35;
+      osc.type = i === 2 ? "square" : "sawtooth";
       osc.frequency.value = 110;
       osc.connect(gain);
       gain.connect(this.mixBus);
       osc.start();
       return { osc, gain };
     });
+    this.oscs[1].osc.detune.value = 8; // gnarly default: slight beating between saws
+    this.osc3Ratio = 0.5; // square one octave below, grinding underneath
+
+    // sub oscillator — always one octave below the played note
+    this.subOsc = ctx.createOscillator();
+    this.subOsc.type = "sine";
+    this.subOsc.frequency.value = 55;
+    this.subGain = ctx.createGain();
+    this.subGain.gain.value = 0.75;
+    this.subOsc.connect(this.subGain);
+    this.subGain.connect(this.mixBus);
+    this.subOsc.start();
 
     this.held = []; // midi note stack (mono, last-note priority)
     this.currentNote = null;
     this.glideTime = 0.05;
-    this.filterBase = 500;
-    this.filterEnvAmount = 2000;
-    this.ampEnv = { attack: 0.005, decay: 0.15, sustain: 0.7, release: 0.2 };
-    this.filterEnv = { attack: 0.002, decay: 0.25, sustain: 0.2, release: 0.3 };
+    this.filterBase = 350;
+    this.filterEnvAmount = 4500;
+    this.ampEnv = { attack: 0.002, decay: 0.35, sustain: 0.65, release: 0.3 };
+    this.filterEnv = { attack: 0.001, decay: 0.3, sustain: 0.12, release: 0.35 };
     this.velocity = 1;
 
     // public note input — what a WebDaw channel / MIDI source will call
@@ -65,6 +94,7 @@ export class MonarcEngine {
       [this.oscs[0].osc, 1],
       [this.oscs[1].osc, this.osc2Ratio || 1],
       [this.oscs[2].osc, this.osc3Ratio || 0.5],
+      [this.subOsc, 0.5],
     ];
     parts.forEach(([osc, ratio]) => {
       const target = f * ratio;
@@ -173,6 +203,12 @@ export class MonarcEngine {
       case "osc1Wave": this.oscs[0].osc.type = value; break;
       case "osc2Wave": this.oscs[1].osc.type = value; break;
       case "osc3Wave": this.oscs[2].osc.type = value; break;
+      case "subLevel": this.subGain.gain.setTargetAtTime(value, t, 0.01); break;
+      case "subWave": this.subOsc.type = value; break;
+      case "drive":
+        this.drive = value;
+        this.shaper.curve = MonarcEngine.driveCurve(value);
+        break;
     }
   }
 }

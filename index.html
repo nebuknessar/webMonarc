@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>webMonarc</title>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #09090b; color: #e4e4e7;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    display: flex; justify-content: center; min-height: 100vh;
+  }
+  #root { padding: 16px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .head { display: flex; align-items: baseline; gap: 12px; }
+  .head h1 { margin: 0; font-size: 20px; letter-spacing: 0.05em; color: #fbbf24; }
+  .head span { font-size: 11px; color: #71717a; }
+  .panels { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 900px; }
+  .panel { background: rgba(24,24,27,0.85); border: 1px solid #3f3f46; border-radius: 8px; padding: 12px; }
+  .panel-title { font-size: 10px; text-transform: uppercase; color: #71717a; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .row { display: flex; gap: 18px; }
+  .env-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .env-label { font-size: 10px; color: rgba(245,158,11,0.8); }
+  .knob-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; user-select: none; }
+  .knob {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(#3f3f46, #18181b);
+    border: 1px solid #52525b; cursor: ns-resize; touch-action: none;
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .knob-inner { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #09090b; }
+  .knob-ptr { position: absolute; transform-origin: center; width: 3px; height: 24px; }
+  .knob-ptr div { width: 100%; height: 12px; background: #fbbf24; border-radius: 3px; }
+  .knob-label { font-size: 10px; text-transform: uppercase; color: #a1a1aa; letter-spacing: 0.05em; }
+  .knob-value { font-size: 10px; color: #fcd34d; font-family: ui-monospace, monospace; }
+  select {
+    background: #27272a; border: 1px solid #52525b; color: #d4d4d8;
+    font-size: 10px; padding: 2px 4px; border-radius: 4px;
+  }
+  .kb-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .kb { display: flex; position: relative; height: 112px; user-select: none; touch-action: none; }
+  .kb-oct { position: relative; width: 168px; height: 100%; }
+  .key-w, .key-b { position: absolute; cursor: pointer; }
+  .key-w {
+    top: 0; width: 24px; height: 112px; border-radius: 0 0 4px 4px;
+    border: 1px solid #3f3f46;
+    background: linear-gradient(#f4f4f5, #d4d4d8);
+  }
+  .key-b {
+    top: 0; width: 14px; height: 68px; border-radius: 0 0 4px 4px;
+    border: 1px solid #000; z-index: 2;
+    background: linear-gradient(#27272a, #18181b);
+  }
+  .key-w.on { background: linear-gradient(#f59e0b, #b45309); }
+  .key-b.on { background: linear-gradient(#d97706, #92400e); }
+  .hint { font-size: 10px; color: #71717a; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
